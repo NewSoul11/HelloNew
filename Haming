@@ -1,0 +1,248 @@
+print("##################### Project ######################")
+print("Bonjour Professeur!")
+
+#This project can generate matrices related to Hamming code
+# (7,4),(15,11),(31,26), and (63,57) (127,120).....Many versions
+#All of these specifications of the Hamming code to produce a matrix is no problem.
+import random
+message = input("Please input your message :")
+print("The length of your message is :",len(message))
+
+def print_matrix(mat): 
+  for r in mat:
+    print(r)
+    #This is a function that I saw on the Internet that prints out matrices.
+    #I think it's nice, it makes the matrix a little bit more beautiful
+    # For example  [[1,2,3],[1,3,5]],it is not beautiful and not conducive to observation
+    # if use this method,it will be  
+    #              [1,2,3]
+    #              [1,3,5]
+
+def get_digits(num):
+  result = list(map(int,str(num)))
+  return result
+  # Make a list out of a number 
+  # for example 123   [1,2,3]
+
+def matrix_multi(lista, listb):
+  return [a*b for a,b in zip(lista,listb)]
+
+def binlist_to_int(list):
+  result = 0
+  for digit in list:
+    result = (result << 1) | digit
+
+  return result
+
+# identify how many partiy need.
+for i in range(0,len(message)):
+	if (2**i-i)>len(message):  
+    
+		break
+  
+parity = i
+Len_Total_Message=2**parity-1   
+message_length=2**parity-1-parity
+q = get_digits(message.zfill(message_length))
+message=q
+print("The message should be ",q)
+print("The numbers of parities       :",parity)
+print("haming code :",Len_Total_Message,message_length)
+
+
+# Parity-check matrix H
+Ht=[]
+for x in range(1,2**parity):
+  # we know if parties is x, usually it has  2**x-1 bits in its hamming code
+  b = bin(x)[2:].zfill(parity) 
+  # if parties is 3. 1,2,3,4,5,6,7. →001 010 011...zfill make them has same form...... Turn them into binary. 
+  l=list(reversed(get_digits(b)))
+  #It corresponds to the matrix in the Power  Point presentation，they need reversed
+  Ht.append(l)
+  #Collect them into a list
+
+
+print("Parity-check matrix H's translation Ht")
+print_matrix(Ht) #
+
+print( )
+
+
+
+import numpy as np
+np.transpose(Ht)   
+H=np.transpose(Ht).tolist()
+#Here I transpose the Ht 
+print("Parity-check matrix ")   
+print_matrix(H) 
+print( )
+
+
+# Total_message is the length of the hamming code,for examle (15,11)
+# Here I want to get a list，which is the same size as a hamming code.
+# And then I can use that to generate an R matrix in the next
+lis=[0]*Len_Total_Message  
+print(lis)
+print( )
+
+#Determine if a number is 2 to the n.  if will equal to 0,else it is 1
+def judge(num):
+  result = num & (num-1)
+  
+  if result == 0:
+    num=0
+  else:
+    num=1
+    
+  return num
+
+R=[]
+for x in range (0,Len_Total_Message):
+  lis=[0]*Len_Total_Message
+
+  if judge(x+1):#Exclude places related to Parity
+   lis[x]=judge(x+1)
+   
+   R.append(lis)
+  
+print("generate_R")
+print_matrix(R)
+print()
+
+for x in range (0,Len_Total_Message):
+  
+
+  
+  lis[x]=judge(x+1)
+
+print(lis) 
+
+print()
+
+ee=[0]*parity 
+for i in range(0,len(ee)):
+  ee[i]=2**i-1
+  # I used it to delete the place for Parity in the next
+  # ee=[1,2,4]
+  
+print(ee)
+
+
+dd=[0]*Len_Total_Message   #Create dd=[0...]
+identity_matrix=np.identity(message_length)
+print("Generating identity matrix")
+print(identity_matrix)
+print( )
+
+for x in range(0,len(H)):
+  #H is the   Parity-check matrix H 
+ l=H[x]
+ tmp=[i for num,i in enumerate(l) if num not in ee]
+ # It deletes a place in the H-matrix that is associated with partiy.
+ dd[2**x-1]=tmp
+ # dd=[0]*Len_Total_Message  
+ print(tmp)
+
+ee_idx=0
+identity_idx=0
+for x in range (0,Len_Total_Message):
+  if ee_idx >= parity or x != ee[ee_idx]:
+    dd[x]=identity_matrix[identity_idx]
+    identity_idx += 1
+    
+
+  else:
+    ee_idx += 1
+
+
+G=dd
+print("generate_G         ")
+print_matrix(G)
+
+def haming_endoce(haming):
+ haming=[]
+ for i in G:
+    
+   message_and_G = matrix_multi(i, message)
+   bit = message_and_G.count(1) % 2
+   haming.append(bit)
+ 
+ return haming
+
+Encode_message=haming_endoce(message)
+
+######Below I modified on the dislocation with decoding.
+
+
+
+##################### CHANNEL-ADDED ERROR (1 bit) ######################
+def flip_bit(message, location):
+  # This will flip the bit at position e-1 (0->1 and 1->0)
+  message[location] = 1 - message[location]
+  
+  return message
+    
+
+def flip_random_bit(message):
+  e = random.randint(1, len(message))
+  print("Flipping bit (=introducing error) at location: " + str(e))
+
+  # This will flip the bit at position e-1 (0->1 and 1->0)
+  message = flip_bit(message, e-1)
+
+  return message
+
+
+#My method accroding to the ppt of the course.
+def hamming_find_error(haming):
+  haming=[]
+  for i in H:
+
+   message_and_G = matrix_multi(i, hamming_with_error)
+   bit = message_and_G.count(1) % 2
+   haming.append(bit)
+
+  l=list(reversed(haming))
+  error_location_in_hamming=binlist_to_int(l)
+  return error_location_in_hamming
+
+
+# Correct any error in the hamming encoded message
+# This function will CHANGE the hamming variable as well
+def hamming_correct(hamming):
+  error_location = hamming_find_error(hamming)
+ 
+  # If there was an error, correct it by swapping the corresponding bit
+  if error_location > 0:
+    flip_bit(hamming, error_location - 1)
+
+  return hamming
+
+
+
+def hamming_decode(hamming):
+  result=[]
+  # The error corrected message is the concatenation of bits 2, 4, 5 and 6...
+  #This is a method that  showed in your class. A classmate's idea 
+  for i in range (len(hamming)):
+   if i+1 & i !=0:
+     result.append(hamming[i])
+
+  
+  return result
+
+print( )
+
+print("Encoded hamming message: " + str(Encode_message))
+
+hamming_with_error = flip_random_bit(Encode_message)
+print("Received hamming message: ",hamming_with_error)
+
+error_location=hamming_find_error(hamming_with_error)
+print("Where did we find an error? ",error_location)
+
+corrected_message = hamming_correct(hamming_with_error)
+print('Corrected hamming message: ' + str(corrected_message))
+
+decoded_message = hamming_decode(corrected_message)
+print('Corrected message: ' + str(decoded_message))
